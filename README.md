@@ -20,7 +20,7 @@ composer require wecodein/response-sender-middleware
 
 ``` php
 $middleware = new ResponseSenderMiddleware();
-$middleware->process();
+$middleware->process($serverRequest, $delegate);
 ```
 
 ## Credits
