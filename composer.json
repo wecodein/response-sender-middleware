@@ -5,7 +5,10 @@
     "license": "MIT",
     "keywords": [
         "wecodein",
-        "response-sender-middleware"
+        "http-middleware",
+        "response-sender-middleware",
+        "middleware",
+        "psr-15"
     ],
     "authors": [
         {
