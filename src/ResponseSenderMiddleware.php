@@ -16,35 +16,44 @@ use Interop\Http\ServerMiddleware\DelegateInterface;
 use Interop\Http\ServerMiddleware\MiddlewareInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\StreamInterface;
 
 /**
  * @author Dusan Vejin <dutekvejin@gmail.com>
  */
 class ResponseSenderMiddleware implements MiddlewareInterface
 {
-    public function process(ServerRequestInterface $request, DelegateInterface $delegate): ResponseInterface
+    public function process(ServerRequestInterface $request, DelegateInterface $delegate) : ResponseInterface
     {
         $response = $delegate->process($request);
 
-        if (!headers_sent()) {
-            $http = sprintf(
-                'HTTP/%s %s %s',
-                $response->getProtocolVersion(),
-                $response->getStatusCode(),
-                $response->getReasonPhrase()
-            );
+        $this->sendHeaders($response);
+        $this->sendOutput($response->getBody());
 
-            header($http, true, $response->getStatusCode());
+        return $response;
+    }
 
-            foreach ($response->getHeaders() as $name => $values) {
-                foreach ($values as $value) {
-                    header(sprintf('%s: %s', $name, $value), false);
-                }
-            }
+    protected function sendHeaders(ResponseInterface $response)
+    {
+        if (headers_sent()) {
+            return;
         }
 
-        $stream = $response->getBody();
+        $protocolVersion = $response->getProtocolVersion();
+        $statusCode = $response->getStatusCode();
+        $reasonPhrase = $response->getReasonPhrase();
 
+        header("HTTP/$protocolVersion $statusCode $reasonPhrase", true, $statusCode);
+
+        foreach ($response->getHeaders() as $name => $values) {
+            foreach ($values as $value) {
+                header("$name: $value", false);
+            }
+        }
+    }
+
+    protected function sendOutput(StreamInterface $stream)
+    {
         if ($stream->isSeekable()) {
             $stream->rewind();
         }
@@ -52,7 +61,5 @@ class ResponseSenderMiddleware implements MiddlewareInterface
         while (false === $stream->eof()) {
             echo $stream->read(1024 * 8);
         }
-
-        return $response;
     }
 }
