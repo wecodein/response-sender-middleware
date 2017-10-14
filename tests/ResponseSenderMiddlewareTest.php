@@ -10,98 +10,132 @@
 
 declare(strict_types=1);
 
-namespace WeCodeIn\Http\ServerMiddleware\Middleware\Tests;
+namespace WeCodeIn\Http\Server\Middleware\Tests;
 
 use Http\Factory\Guzzle\ResponseFactory;
 use Http\Factory\Guzzle\ServerRequestFactory;
 use Http\Factory\Guzzle\StreamFactory;
-use Interop\Http\ServerMiddleware\DelegateInterface;
+use Interop\Http\Factory\ResponseFactoryInterface;
+use Interop\Http\Factory\ServerRequestFactoryInterface;
+use Interop\Http\Server\MiddlewareInterface;
+use Interop\Http\Server\RequestHandlerInterface;
 use phpmock\phpunit\PHPMock;
 use PHPUnit\Framework\TestCase;
-use WeCodeIn\Http\ServerMiddleware\Middleware\ResponseSenderMiddleware;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use WeCodeIn\Http\Server\Middleware\CallableMiddleware;
+use WeCodeIn\Http\Server\Middleware\ResponseSenderMiddleware;
+use WeCodeIn\Http\Server\RequestHandler;
 
-/**
- * @author Dusan Vejin <dutekvejin@gmail.com>
- */
 class ResponseSenderMiddlewareTest extends TestCase
 {
     use PHPMock;
 
-    /**
-     * @group ServerMiddleware
-     */
-    public function testSend()
+    public function testProcessSendsHeaders()
     {
-        $serverRequestFactory = new ServerRequestFactory();
-        $request = $serverRequestFactory->createServerRequest('GET', 'http://localhost/');
-
-        $streamFactory = new StreamFactory();
-        $responseFactory = new ResponseFactory();
-        $response = $responseFactory->createResponse(200)
-            ->withProtocolVersion('1.1')
-            ->withHeader('Content-Type', 'text/plain')
-            ->withBody($streamFactory->createStream($body = 'Http body'));
-
-        $delegate = $this->createMock(DelegateInterface::class);
-        $delegate->expects($this->any())
-            ->method('process')
-            ->with($request)
-            ->willReturn($response);
-
-        $headersSent = $this->getFunctionMock('WeCodeIn\Http\ServerMiddleware\Middleware', 'headers_sent');
-        $headersSent->expects($this->once())
+        $headersSent = $this->getFunctionMock('WeCodeIn\Http\Server\Middleware', 'headers_sent');
+        $headersSent->expects($this->any())
             ->willReturn(false);
 
-        $header = $this->getFunctionMock('WeCodeIn\Http\ServerMiddleware\Middleware', 'header');
+        $header = $this->getFunctionMock('WeCodeIn\Http\Server\Middleware', 'header');
         $header->expects($this->exactly(2))
             ->withConsecutive(
                 ['HTTP/1.1 200 OK', true, 200],
                 ['Content-Type: text/plain', false]
             );
 
-        ob_start();
-        $responseSenderMiddleware = new ResponseSenderMiddleware();
-        $return = $responseSenderMiddleware->process($request, $delegate);
-        $output = ob_get_clean();
+        $callable = function () {
+            return $this->createResponse()
+                ->withHeader('Content-Type', 'text/plain');
+        };
 
-        $this->assertSame($response, $return);
-        $this->assertSame($output, $body);
+        $middleware = new CallableMiddleware($callable);
+
+        $request = $this->createServerRequest();
+        $handler = $this->createRequestHandler($middleware);
+
+        $responseSenderMiddleware = new ResponseSenderMiddleware();
+        $responseSenderMiddleware->process($request, $handler);
     }
 
-    /**
-     * @group ServerMiddleware
-     */
-    public function testSendWhenHeadersAlreadySent()
+    public function testProcessOutputBody()
     {
-        $serverRequestFactory = new ServerRequestFactory();
-        $request = $serverRequestFactory->createServerRequest('GET', 'http://localhost/');
+        $headersSent = $this->getFunctionMock('WeCodeIn\Http\Server\Middleware', 'headers_sent');
+        $headersSent->expects($this->any())
+            ->willReturn(false);
 
-        $streamFactory = new StreamFactory();
-        $responseFactory = new ResponseFactory();
-        $response = $responseFactory->createResponse(200)
-            ->withProtocolVersion('1.1')
-            ->withHeader('Content-Type', 'text/plain')
-            ->withBody($streamFactory->createStream($body = 'Http body'));
+        $header = $this->getFunctionMock('WeCodeIn\Http\Server\Middleware', 'header');
+        $header->expects($this->any());
 
-        $delegate = $this->createMock(DelegateInterface::class);
-        $delegate->expects($this->any())
-            ->method('process')
-            ->with($request)
-            ->willReturn($response);
+        $body = 'Response Body';
 
-        $headersSent = $this->getFunctionMock('WeCodeIn\Http\ServerMiddleware\Middleware', 'headers_sent');
-        $headersSent->expects($this->once())
-            ->willReturn(true);
+        $callable = function () use ($body) {
+            $streamFactory = new StreamFactory();
 
-        $header = $this->getFunctionMock('WeCodeIn\Http\ServerMiddleware\Middleware', 'header');
-        $header->expects($this->never());
+            return $this->createResponse()
+                ->withBody($streamFactory->createStream($body));
+        };
+
+        $middleware = new CallableMiddleware($callable);
+
+        $request = $this->createServerRequest();
+        $handler = $this->createRequestHandler($middleware);
 
         ob_start();
         $responseSenderMiddleware = new ResponseSenderMiddleware();
-        $return = $responseSenderMiddleware->process($request, $delegate);
+        $responseSenderMiddleware->process($request, $handler);
         $output = ob_get_clean();
 
-        $this->assertSame($response, $return);
-        $this->assertSame($output, $body);
+        $this->assertSame($body, $output);
+    }
+
+    public function testProcessNotSendsHeadersWhenHeadersAlreadySent()
+    {
+        $headersSent = $this->getFunctionMock('WeCodeIn\Http\Server\Middleware', 'headers_sent');
+        $headersSent->expects($this->any())
+            ->willReturn(true);
+
+        $header = $this->getFunctionMock('WeCodeIn\Http\Server\Middleware', 'header');
+        $header->expects($this->never());
+
+        $callable = function () {
+            return $this->createResponse()
+                ->withHeader('Content-Type', 'text/plain');
+        };
+
+        $middleware = new CallableMiddleware($callable);
+
+        $request = $this->createServerRequest();
+        $handler = $this->createRequestHandler($middleware);
+
+        $responseSenderMiddleware = new ResponseSenderMiddleware();
+        $responseSenderMiddleware->process($request, $handler);
+    }
+
+    protected function getServerRequestFactory() : ServerRequestFactoryInterface
+    {
+        return new ServerRequestFactory();
+    }
+
+    protected function createServerRequest() : ServerRequestInterface
+    {
+        return $this->getServerRequestFactory()
+            ->createServerRequest('GET', 'http://example.com');
+    }
+
+    protected function getResponseFactory() : ResponseFactoryInterface
+    {
+        return new ResponseFactory();
+    }
+
+    protected function createResponse(int $code = 200) : ResponseInterface
+    {
+        return $this->getResponseFactory()
+            ->createResponse($code);
+    }
+
+    protected function createRequestHandler(MiddlewareInterface ...$middlewares) : RequestHandlerInterface
+    {
+        return new RequestHandler($this->getResponseFactory(), ...$middlewares);
     }
 }

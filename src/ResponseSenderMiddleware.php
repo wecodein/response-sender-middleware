@@ -10,22 +10,19 @@
 
 declare(strict_types=1);
 
-namespace WeCodeIn\Http\ServerMiddleware\Middleware;
+namespace WeCodeIn\Http\Server\Middleware;
 
-use Interop\Http\ServerMiddleware\DelegateInterface;
-use Interop\Http\ServerMiddleware\MiddlewareInterface;
+use Interop\Http\Server\MiddlewareInterface;
+use Interop\Http\Server\RequestHandlerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamInterface;
 
-/**
- * @author Dusan Vejin <dutekvejin@gmail.com>
- */
 class ResponseSenderMiddleware implements MiddlewareInterface
 {
-    public function process(ServerRequestInterface $request, DelegateInterface $delegate) : ResponseInterface
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler) : ResponseInterface
     {
-        $response = $delegate->process($request);
+        $response = $handler->handle($request);
 
         $this->sendHeaders($response);
         $this->sendOutput($response->getBody());

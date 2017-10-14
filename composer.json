@@ -8,7 +8,9 @@
         "http-middleware",
         "response-sender-middleware",
         "middleware",
-        "psr-15"
+        "psr-7",
+        "psr-15",
+        "psr-17"
     ],
     "authors": [
         {
@@ -19,28 +21,32 @@
     ],
     "require": {
         "php": "^7.0",
-        "http-interop/http-middleware": "^0.4.1"
+        "http-interop/http-middleware": "^0.5.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^6.2",
-        "friendsofphp/php-cs-fixer": "^2.0",
+        "friendsofphp/php-cs-fixer": "^2.7",
+        "http-interop/http-factory-guzzle": "^0.3.1",
         "php-mock/php-mock-phpunit": "^2.0",
-        "http-interop/http-factory-guzzle": "^0.3.1"
+        "phpunit/phpunit": "^6.4",
+        "wecodein/http-middleware": "^0.5.0"
     },
     "autoload": {
         "psr-4": {
-            "WeCodeIn\\Http\\ServerMiddleware\\Middleware\\": "src/"
+            "WeCodeIn\\Http\\Server\\Middleware\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "WeCodeIn\\Http\\ServerMiddleware\\Middleware\\Tests\\": "tests/"
+            "WeCodeIn\\Http\\Server\\Middleware\\Tests\\": "tests/"
         }
     },
     "scripts": {
         "test": "phpunit --colors=always",
         "cs-fix": "php-cs-fixer fix --config=.php_cs",
         "cs-check": "php-cs-fixer fix --config=.php_cs -v --diff --dry-run"
+    },
+    "config": {
+        "sort-packages": true
     },
     "extra": {
         "branch-alias": {
