@@ -1,6 +1,29 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.0.0 - November 23, 2017
+
+### Added
+
+- Added support for `http-interop/http-server-middleware` 1.0.1
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- Nothing.
+
+
 ## 0.5.0 - October 14, 2017
 
 ### Added
