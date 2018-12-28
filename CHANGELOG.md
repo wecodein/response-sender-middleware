@@ -1,6 +1,29 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 1.0.1 - December 28, 2018
+
+### Added
+
+- Added support for `psr/http-server-middleware` ^1.0
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Removed support for `http-interop/http-server-middleware`
+
+### Fixed
+
+- Nothing.
+
+
 ## 1.0.0 - November 23, 2017
 
 ### Added
